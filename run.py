@@ -92,8 +92,7 @@ class Network(torch.nn.Module):
 			torch.nn.Sigmoid()
 		)
 
-		self.load_state_dict({ strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in torch.hub.load_state_dict_from_url(url='http://content.sniklaus.com/github/pytorch-hed/network-' + arguments_strModel + '.pytorch', file_name='hed-' + arguments_strModel).items() })
-	# end
+		self.load_state_dict(torch.load('C:/Users/keert/code/Latent-GAN/pytorch-hed/hed.pytorch'))
 
 	def forward(self, tenInput):
 		tenBlue = (tenInput[:, 0:1, :, :] * 255.0) - 104.00698793
@@ -121,35 +120,27 @@ class Network(torch.nn.Module):
 		tenScoreFiv = torch.nn.functional.interpolate(input=tenScoreFiv, size=(tenInput.shape[2], tenInput.shape[3]), mode='bilinear', align_corners=False)
 
 		return self.netCombine(torch.cat([ tenScoreOne, tenScoreTwo, tenScoreThr, tenScoreFou, tenScoreFiv ], 1))
-	# end
-# end
 
 netNetwork = None
 
-##########################################################
 
 def estimate(tenInput):
 	global netNetwork
 
 	if netNetwork is None:
 		netNetwork = Network().cuda().eval()
-	# end
 
 	intWidth = tenInput.shape[2]
 	intHeight = tenInput.shape[1]
 
-	assert(intWidth == 480) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
-	assert(intHeight == 320) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
-
 	return netNetwork(tenInput.cuda().view(1, 3, intHeight, intWidth))[0, :, :, :].cpu()
-# end
 
-##########################################################
 
 if __name__ == '__main__':
 	tenInput = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strIn))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 
 	tenOutput = estimate(tenInput)
-
+	print(tenOutput.shape)
+	print(tenOutput)
 	PIL.Image.fromarray((tenOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, 0] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
 # end
